@@ -208,7 +208,7 @@ window.addEventListener('click', (e) => {
 });
 
 // ========== ОБРАБОТКА ФОРМ ==========
-async function handleFormSubmit(formId, getMessage, onSuccess) {
+async function handleFormSubmit(formId, getMessage, onSuccess, getOrderData) {
     const form = document.getElementById(formId);
     if (!form) return;
     
@@ -232,9 +232,12 @@ async function handleFormSubmit(formId, getMessage, onSuccess) {
         if (sent) {
             showToast(onSuccess || 'Заявка успешно отправлена!', 'success');
             form.reset();
-            if (modal) modal.style.display = 'none';
+            if (getOrderData) {
+                const order = getOrderData(form);
+                if (order) saveOrder(order);
+            }
         } else {
-            showToast('Ошибка отправки. Попробуйте позвонить.', 'error');
+            showToast('Ошибка отправки. Позвоните нам.', 'error');
             console.log('Данные заявки:', message);
         }
         
@@ -249,13 +252,27 @@ handleFormSubmit('callbackForm', (form) => {
     const device = form.querySelector('select')?.value || 'Не выбрано';
     const problem = form.querySelector('textarea')?.value || 'Не указана';
     return `🔧 НОВАЯ ЗАЯВКА\n\n👤 Имя: ${name}\n📞 Телефон: ${phone}\n🖨️ Устройство: ${device}\n📝 Проблема: ${problem}\n\n⏰ ${new Date().toLocaleString()}`;
-}, 'Спасибо за заявку! Мы свяжемся с вами.');
+}, 'Спасибо за заявку! Мы свяжемся с вами.', (form) => ({
+    id: `order_${Date.now()}`,
+    type: 'Заявка на ремонт',
+    name: form.querySelector('input[placeholder="Ваше имя"]')?.value || 'Не указан',
+    phone: form.querySelector('input[type="tel"]')?.value || 'Не указан',
+    device,
+    problem,
+    createdAt: new Date().toISOString()
+}));
 
 handleFormSubmit('modalForm', (form) => {
     const name = form.querySelector('input[placeholder="Ваше имя"]')?.value || 'Не указан';
     const phone = form.querySelector('input[type="tel"]')?.value || 'Не указан';
     return `📞 ЗАКАЗ ЗВОНКА\n\n👤 Имя: ${name}\n📞 Телефон: ${phone}\n\n⏰ ${new Date().toLocaleString()}`;
-}, 'Спасибо! Мы перезвоним через 15 минут.');
+}, 'Спасибо! Мы перезвоним через 15 минут.', (form) => ({
+    id: `order_${Date.now()}`,
+    type: 'Обратный звонок',
+    name: form.querySelector('input[placeholder="Ваше имя"]')?.value || 'Не указан',
+    phone: form.querySelector('input[type="tel"]')?.value || 'Не указан',
+    createdAt: new Date().toISOString()
+}));
 
 // ========== МОДЕРАЦИЯ ОТЗЫВОВ ==========
 const REVIEW_MOD_GUEST_KEY = 'technoservice_guest_moderation_id';
@@ -395,6 +412,7 @@ function applyReviewFormBlockedState() {
 // ========== ОТЗЫВЫ (сохранение в localStorage) ==========
 const REVIEWS_STORAGE_KEY = 'technoservice_reviews';
 const REVIEWS_INITIALIZED_KEY = 'technoservice_reviews_initialized';
+const ORDERS_STORAGE_KEY = 'technoservice_orders';
 
 const DEFAULT_REVIEWS = [
     {
@@ -496,6 +514,31 @@ function updateStoredReview(reviewId, updates) {
 function deleteStoredReview(reviewId) {
     const reviews = getStoredReviews().filter((r) => r.id !== reviewId);
     saveAllReviews(reviews);
+}
+
+// ========== ХРАНЕНИЕ ЗАКАЗОВ (localStorage) ==========
+function getStoredOrders() {
+    try {
+        const raw = localStorage.getItem(ORDERS_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveStoredOrders(orders) {
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
+}
+
+function saveOrder(order) {
+    const orders = getStoredOrders();
+    orders.unshift(order);
+    saveStoredOrders(orders);
+}
+
+function deleteStoredOrder(orderId) {
+    const orders = getStoredOrders().filter((o) => o.id !== orderId);
+    saveStoredOrders(orders);
 }
 
 function getReviewById(reviewId) {
@@ -730,6 +773,16 @@ if (serviceOrderForm) {
         
         if (sent) {
             showToast(`Спасибо, ${name}! Заявка принята.`, 'success');
+            saveOrder({
+                id: `order_${Date.now()}`,
+                type: 'Заказ услуги',
+                name,
+                phone,
+                email: email || '',
+                comment,
+                serviceInfo,
+                createdAt: new Date().toISOString()
+            });
             serviceOrderForm.reset();
             if (serviceModal) serviceModal.style.display = 'none';
         } else {
@@ -858,6 +911,16 @@ async function openOrderFormForDevice(brand, model) {
         
         if (sent) {
             showToast(`Спасибо, ${name}! Заявка принята.`, 'success');
+            saveOrder({
+                id: `order_${Date.now()}`,
+                type: 'Заявка на ремонт',
+                name,
+                phone,
+                email: email || '',
+                device: `${brand} ${model}`,
+                problem,
+                createdAt: new Date().toISOString()
+            });
             form.reset();
             if (orderModal) orderModal.style.display = 'none';
         } else {
@@ -1329,7 +1392,7 @@ function updateAuthUI() {
         loggedInBlock.style.display = 'flex';
         if (profileBtn) {
             profileBtn.textContent = isAdmin(user) ? 'Панель админа' : (user.name || user.email);
-            profileBtn.title = isAdmin(user) ? 'Управление отзывами' : 'Личный кабинет';
+            profileBtn.title = isAdmin(user) ? 'Панель администратора' : 'Личный кабинет';
         }
         prefillFormsForUser(user);
     } else {
@@ -1545,7 +1608,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ========== ПАНЕЛЬ АДМИНИСТРАТОРА (редактирование отзывов) ==========
+// ========== ПАНЕЛЬ АДМИНИСТРАТОРА (отзывы, пользователи, заказы) ==========
 let adminModal = null;
 let adminEditModal = null;
 
@@ -1559,9 +1622,15 @@ function initAdminModals() {
         <div class="modal-content admin-modal-content">
             <span class="modal-close" data-close-admin>&times;</span>
             <h2>Панель администратора</h2>
-            <p class="admin-modal-subtitle">Редактирование отзывов на сайте</p>
-            <div id="adminReviewsList" class="admin-reviews-list"></div>
-            <p class="auth-form-note">Вход: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}</p>
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="reviews">Отзывы</button>
+                <button class="admin-tab" data-tab="users">Пользователи</button>
+                <button class="admin-tab" data-tab="orders">Заказы</button>
+            </div>
+            <div class="admin-tab-content active" id="adminTabReviews"></div>
+            <div class="admin-tab-content" id="adminTabUsers"></div>
+            <div class="admin-tab-content" id="adminTabOrders"></div>
+            <p class="auth-form-note" style="margin-top:16px;">Вход: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}</p>
         </div>
     `;
 
@@ -1650,13 +1719,30 @@ function initAdminModals() {
 
         renderAllReviews();
         closeModal(adminEditModal);
-        openAdminPanel();
+        openAdminPanel('reviews');
         showToast('Отзыв обновлён', 'success');
+    });
+
+    adminModal.querySelectorAll('.admin-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            adminModal.querySelectorAll('.admin-tab').forEach((t) => t.classList.remove('active'));
+            adminModal.querySelectorAll('.admin-tab-content').forEach((c) => c.classList.remove('active'));
+            tab.classList.add('active');
+            const content = document.getElementById(`adminTab${tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)}`);
+            if (content) content.classList.add('active');
+            renderAdminTab(tab.dataset.tab);
+        });
     });
 }
 
+function renderAdminTab(tabName) {
+    if (tabName === 'reviews') renderAdminReviewsList();
+    else if (tabName === 'users') renderAdminUsersList();
+    else if (tabName === 'orders') renderAdminOrdersList();
+}
+
 function renderAdminReviewsList() {
-    const list = document.getElementById('adminReviewsList');
+    const list = document.getElementById('adminTabReviews');
     if (!list) return;
 
     const reviews = getStoredReviews().sort(
@@ -1706,9 +1792,81 @@ function renderAdminReviewsList() {
     });
 }
 
-function openAdminPanel() {
+function renderAdminUsersList() {
+    const list = document.getElementById('adminTabUsers');
+    if (!list) return;
+
+    const users = getStoredUsers().filter((u) => u.role !== 'admin');
+
+    if (!users.length) {
+        list.innerHTML = '<p class="admin-empty">Зарегистрированных пользователей нет</p>';
+        return;
+    }
+
+    list.innerHTML = users.map((user) => `
+        <div class="admin-user-item">
+            <div class="admin-user-item-head">
+                <strong>${escapeHtml(user.name || 'Без имени')}</strong>
+                <span style="font-size:12px;color:#94a3b8;">${escapeHtml(user.registeredAt ? new Date(user.registeredAt).toLocaleDateString() : '')}</span>
+            </div>
+            <div class="admin-user-info">
+                Email: ${escapeHtml(user.email)}<br>
+                Телефон: ${escapeHtml(user.phone || '—')}
+                ${user.blocked ? '<br><span style="color:#ef4444;">Заблокирован</span>' : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderAdminOrdersList() {
+    const list = document.getElementById('adminTabOrders');
+    if (!list) return;
+
+    const orders = getStoredOrders().sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    if (!orders.length) {
+        list.innerHTML = '<p class="admin-empty">Заказов пока нет</p>';
+        return;
+    }
+
+    list.innerHTML = orders.map((order) => `
+        <div class="admin-order-item">
+            <div class="admin-order-item-head">
+                <strong>${escapeHtml(order.type)}</strong>
+                <span style="font-size:12px;color:#94a3b8;">${new Date(order.createdAt).toLocaleString()}</span>
+            </div>
+            <div class="admin-order-info">
+                Имя: ${escapeHtml(order.name)}<br>
+                Телефон: ${escapeHtml(order.phone)}${order.email ? '<br>Email: ' + escapeHtml(order.email) : ''}${order.device ? '<br>Устройство: ' + escapeHtml(order.device) : ''}${order.serviceInfo ? '<br>Услуга: ' + escapeHtml(order.serviceInfo) : ''}${order.problem ? '<br>Проблема: ' + escapeHtml(order.problem) : ''}${order.comment ? '<br>Комментарий: ' + escapeHtml(order.comment) : ''}
+            </div>
+            <div class="admin-order-item-actions">
+                <button type="button" class="btn btn-secondary btn-sm admin-delete-order-btn" data-id="${escapeHtml(order.id)}">Удалить</button>
+            </div>
+        </div>
+    `).join('');
+
+    list.querySelectorAll('.admin-delete-order-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            if (!confirm('Удалить заказ?')) return;
+            deleteStoredOrder(btn.dataset.id);
+            renderAdminOrdersList();
+            showToast('Заказ удалён', 'success');
+        });
+    });
+}
+
+function openAdminPanel(tab) {
     if (!adminModal) initAdminModals();
-    renderAdminReviewsList();
+    const targetTab = tab || 'reviews';
+    adminModal.querySelectorAll('.admin-tab').forEach((t) => {
+        t.classList.toggle('active', t.dataset.tab === targetTab);
+    });
+    adminModal.querySelectorAll('.admin-tab-content').forEach((c) => {
+        c.classList.toggle('active', c.id === `adminTab${targetTab.charAt(0).toUpperCase() + targetTab.slice(1)}`);
+    });
+    renderAdminTab(targetTab);
     openModal(adminModal);
 }
 
