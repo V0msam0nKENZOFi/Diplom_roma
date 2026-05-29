@@ -2,7 +2,6 @@
 const SITE_CONFIG = window.SITE_CONFIG || {};
 const TELEGRAM_BOT_TOKEN = SITE_CONFIG.telegramBotToken || '';
 const TELEGRAM_CHAT_ID = SITE_CONFIG.telegramChatId || '';
-const YANDEX_MAPS_API_KEY = SITE_CONFIG.yandexMapsApiKey || '';
 
 function isTelegramConfigured() {
     return Boolean(TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID);
@@ -523,7 +522,7 @@ if (!serviceModal) {
         <div class="modal-content">
             <span class="modal-close">&times;</span>
             <h2>Оформление заказа</h2>
-            <p id="selectedServiceName" style="background: #f0f0f0; padding: 10px; border-radius: 8px; margin: 15px 0;"></p>
+            <p id="selectedServiceName" style="background: #f0fdfa; padding: 10px; border-radius: 8px; margin: 15px 0; border-left: 3px solid #0d9488;"></p>
             <form id="serviceOrderForm">
                 <input type="text" placeholder="Ваше имя" required>
                 <input type="tel" placeholder="Телефон" required>
@@ -639,9 +638,9 @@ function showBrandModels(brandName) {
         models.forEach(model => {
             const modelBtn = document.createElement('button');
             modelBtn.textContent = model;
-            modelBtn.style.cssText = `padding: 12px; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-align: left; transition: all 0.3s; font-size: 14px;`;
-            modelBtn.addEventListener('mouseenter', () => { modelBtn.style.background = '#e65100'; modelBtn.style.color = 'white'; });
-            modelBtn.addEventListener('mouseleave', () => { modelBtn.style.background = '#f8f9fa'; modelBtn.style.color = '#333'; });
+            modelBtn.style.cssText = `padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; text-align: left; transition: all 0.3s; font-size: 14px;`;
+            modelBtn.addEventListener('mouseenter', () => { modelBtn.style.background = '#0d9488'; modelBtn.style.color = 'white'; modelBtn.style.borderColor = '#0d9488'; });
+            modelBtn.addEventListener('mouseleave', () => { modelBtn.style.background = '#f8fafc'; modelBtn.style.color = '#333'; modelBtn.style.borderColor = '#e2e8f0'; });
             modelBtn.addEventListener('click', () => {
                 if (brandModal) brandModal.style.display = 'none';
                 openOrderFormForDevice(brandName, model);
@@ -663,7 +662,7 @@ async function openOrderFormForDevice(brand, model) {
             <div class="modal-content">
                 <span class="modal-close">&times;</span>
                 <h2>Заявка на ремонт</h2>
-                <div id="deviceInfo" style="background: #e8f0fe; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #e65100;"></div>
+                <div id="deviceInfo" style="background: #f0fdfa; padding: 15px; border-radius: 10px; margin: 15px 0; border-left: 4px solid #0d9488;"></div>
                 <form id="deviceOrderForm">
                     <input type="text" placeholder="Ваше имя" required>
                     <input type="tel" placeholder="Телефон" required>
@@ -772,41 +771,37 @@ if (scrollToTopBtn) {
     });
 }
 
-// ========== ЯНДЕКС КАРТА ==========
-function initMap() {
-    if (typeof ymaps === 'undefined') return;
-    
-    ymaps.ready(() => {
-        const map = new ymaps.Map('map', {
-            center: [55.751574, 37.673856],
-            zoom: 12,
-            controls: ['zoomControl', 'fullscreenControl']
-        });
-        
-        const placemark = new ymaps.Placemark([55.751574, 37.673856], {
-            hintContent: 'ТехноСервис+',
-            balloonContent: '<strong>ТехноСервис+</strong><br>ул. Техническая, д. 15, стр. 2<br>м. Авиамоторная'
-        }, {
-            preset: 'islands#redIcon'
-        });
-        
-        map.geoObjects.add(placemark);
-    });
+// ========== КАРТА ==========
+const MAP_CONFIG = {
+    lat: 55.751574,
+    lng: 37.673856,
+    zoom: 16,
+    title: 'ТехноСервис+',
+    address: 'г. Москва, ул. Техническая, д. 15, стр. 2',
+    hint: 'м. Авиамоторная, 5 мин пешком'
+};
+
+let mapInstance = null;
+let mapInitStarted = false;
+
+function getMapContainer() {
+    return document.getElementById('map');
 }
 
-function loadYandexMapsScript() {
-    const key = YANDEX_MAPS_API_KEY.trim();
-    if (!key || key === 'ваш-api-ключ') {
-        return Promise.resolve(false);
-    }
+function setMapLoading(message) {
+    const el = getMapContainer();
+    if (!el || el.dataset.mapReady === 'true') return;
+    el.innerHTML = `<div class="map-loading">${message}</div>`;
+}
 
-    if (typeof ymaps !== 'undefined') {
-        return Promise.resolve(true);
-    }
-
+function loadScript(src) {
     return new Promise((resolve) => {
+        if (document.querySelector(`script[src="${src}"]`)) {
+            resolve(true);
+            return;
+        }
         const script = document.createElement('script');
-        script.src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(key)}&lang=ru_RU`;
+        script.src = src;
         script.async = true;
         script.onload = () => resolve(true);
         script.onerror = () => resolve(false);
@@ -814,12 +809,231 @@ function loadYandexMapsScript() {
     });
 }
 
-window.addEventListener('load', async () => {
-    const mapsLoaded = await loadYandexMapsScript();
-    if (mapsLoaded && typeof ymaps !== 'undefined') {
-        initMap();
+async function loadLeafletJS() {
+    if (typeof L !== 'undefined') return true;
+    const sources = [
+        'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js',
+        'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+    ];
+    for (const src of sources) {
+        const ok = await loadScript(src);
+        if (ok && typeof L !== 'undefined') return true;
     }
-});
+    return false;
+}
+
+function createLeafletMarkerIcon() {
+    return L.divIcon({
+        html: `<div style="
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, #0d9488, #06b6d4);
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 3px 12px rgba(13,148,136,0.5);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; color: white;
+        ">🖨️</div>`,
+        className: '',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+        popupAnchor: [0, -22]
+    });
+}
+
+function bindLeafletMarker(map) {
+    const { lat, lng, title, address, hint } = MAP_CONFIG;
+    L.marker([lat, lng], { icon: createLeafletMarkerIcon() })
+        .addTo(map)
+        .bindPopup(`
+            <div style="font-family: inherit; min-width: 180px;">
+                <strong style="font-size: 15px;">${title}</strong><br>
+                <span style="color: #475569; font-size: 13px;">
+                    ${address}<br>${hint}
+                </span>
+            </div>
+        `)
+        .openPopup();
+}
+
+function initLeafletMap() {
+    const container = getMapContainer();
+    if (!container || typeof L === 'undefined') return false;
+
+    container.innerHTML = '';
+    container.dataset.mapReady = 'true';
+
+    const { lat, lng, zoom } = MAP_CONFIG;
+    const map = L.map(container, {
+        center: [lat, lng],
+        zoom,
+        scrollWheelZoom: false,
+        attributionControl: false
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '',
+        maxZoom: 19
+    }).addTo(map);
+
+    map.attributionControl?.remove();
+    bindLeafletMarker(map);
+
+    mapInstance = map;
+    const refresh = () => {
+        try {
+            map.invalidateSize({ animate: false });
+        } catch (_) { /* ignore */ }
+    };
+    setTimeout(refresh, 100);
+    setTimeout(refresh, 500);
+    window.addEventListener('resize', refresh);
+    return true;
+}
+
+function loadYandexMapsApi(apiKey) {
+    return new Promise((resolve) => {
+        if (window.ymaps && window.ymaps.ready) {
+            resolve(true);
+            return;
+        }
+        const src = `https://api-maps.yandex.ru/2.1/?apikey=${encodeURIComponent(apiKey)}&lang=ru_RU`;
+        if (document.querySelector(`script[src^="https://api-maps.yandex.ru"]`)) {
+            const wait = setInterval(() => {
+                if (window.ymaps) {
+                    clearInterval(wait);
+                    resolve(true);
+                }
+            }, 100);
+            setTimeout(() => {
+                clearInterval(wait);
+                resolve(Boolean(window.ymaps));
+            }, 8000);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.head.appendChild(script);
+    });
+}
+
+function initYandexMap(apiKey) {
+    const container = getMapContainer();
+    if (!container || !apiKey) return Promise.resolve(false);
+
+    return loadYandexMapsApi(apiKey).then((loaded) => {
+        if (!loaded || !window.ymaps) return false;
+
+        return new Promise((resolve) => {
+            window.ymaps.ready(() => {
+                try {
+                    container.innerHTML = '';
+                    container.dataset.mapReady = 'true';
+                    const { lat, lng, zoom, title, address, hint } = MAP_CONFIG;
+                    const map = new window.ymaps.Map(container, {
+                        center: [lat, lng],
+                        zoom,
+                        controls: ['zoomControl', 'fullscreenControl']
+                    });
+                    const placemark = new window.ymaps.Placemark(
+                        [lat, lng],
+                        {
+                            balloonContentHeader: title,
+                            balloonContentBody: `${address}<br>${hint}`
+                        },
+                        { preset: 'islands#greenDotIcon' }
+                    );
+                    map.geoObjects.add(placemark);
+                    placemark.balloon.open();
+                    mapInstance = map;
+                    resolve(true);
+                } catch (e) {
+                    console.error('Yandex Maps init error:', e);
+                    resolve(false);
+                }
+            });
+        });
+    });
+}
+
+function initYandexWidgetFallback() {
+    const container = getMapContainer();
+    if (!container) return false;
+
+    const { lat, lng, zoom, title } = MAP_CONFIG;
+    const ll = `${lng},${lat}`;
+    const pt = `${lng},${lat},pm2rdm`;
+    const params = new URLSearchParams({
+        ll,
+        z: String(zoom),
+        pt,
+        l: 'map',
+        text: title
+    });
+
+    container.innerHTML = '';
+    container.dataset.mapReady = 'true';
+
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://yandex.ru/map-widget/v1/?${params.toString()}`;
+    iframe.title = 'Карта — ТехноСервис+';
+    iframe.loading = 'lazy';
+    iframe.referrerPolicy = 'no-referrer-when-downgrade';
+    iframe.allowFullscreen = true;
+    container.appendChild(iframe);
+    return true;
+}
+
+async function initSiteMap() {
+    if (mapInitStarted) return;
+    mapInitStarted = true;
+
+    const container = getMapContainer();
+    if (!container) return;
+
+    setMapLoading('Загрузка карты…');
+
+    const yandexKey = (SITE_CONFIG.yandexMapsApiKey || '').trim();
+    if (yandexKey) {
+        const yandexOk = await initYandexMap(yandexKey);
+        if (yandexOk) return;
+    }
+
+    const leafletLoaded = await loadLeafletJS();
+    if (leafletLoaded && initLeafletMap()) return;
+
+    initYandexWidgetFallback();
+}
+
+function setupMapLazyInit() {
+    const container = getMapContainer();
+    if (!container) return;
+
+    const start = () => initSiteMap();
+
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries.some((e) => e.isIntersecting)) {
+                    observer.disconnect();
+                    start();
+                }
+            },
+            { rootMargin: '120px', threshold: 0.05 }
+        );
+        observer.observe(container);
+    } else {
+        start();
+    }
+
+    window.addEventListener('load', () => {
+        if (container.dataset.mapReady !== 'true') start();
+    });
+}
+
+setupMapLazyInit();
 
 // ========== ВХОД И РЕГИСТРАЦИЯ (localStorage на этом ПК) ==========
 const AUTH_USERS_KEY = 'technoservice_users';
@@ -1925,7 +2139,7 @@ class CursorTrailEffect {
         trail.style.top = this.cursorY + 'px';
         
         // Случайный цвет следа
-        const colors = ['#e65100', '#ff6d00', '#ff9800', '#ffb300', '#ffeb3b'];
+        const colors = ['#0d9488', '#14b8a6', '#06b6d4', '#22d3ee', '#5eead4'];
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
         trail.style.background = `radial-gradient(circle, ${randomColor}, transparent)`;
         
@@ -1957,7 +2171,7 @@ class CursorTrailEffect {
             particle.style.setProperty('--ty', ty + 'px');
             
             // Случайный цвет
-            const colors = ['#e65100', '#ff9800', '#ffeb3b', '#ff6d00'];
+            const colors = ['#0d9488', '#14b8a6', '#22d3ee', '#06b6d4'];
             particle.style.background = colors[Math.floor(Math.random() * colors.length)];
             
             document.body.appendChild(particle);
@@ -2103,7 +2317,7 @@ class SimpleCursorTrail {
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #e65100, #ff9800);
+            background: linear-gradient(135deg, #0d9488, #06b6d4);
             pointer-events: none;
             z-index: 9999;
             transform: translate(-50%, -50%);
@@ -2175,7 +2389,7 @@ class SimpleCursorTrail {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: radial-gradient(circle, #e65100, transparent);
+            background: radial-gradient(circle, #0d9488, transparent);
             transform: translate(-50%, -50%) scale(0);
             pointer-events: none;
             z-index: 9997;
@@ -2208,7 +2422,7 @@ class SimpleCursorTrail {
             top: ${this.cursorY}px;
             width: 4px;
             height: 4px;
-            background: #ff9800;
+            background: #14b8a6;
             border-radius: 50%;
             pointer-events: none;
             z-index: 9996;
@@ -2239,7 +2453,7 @@ class SimpleCursorTrail {
             });
             el.addEventListener('mouseleave', () => {
                 this.cursor.style.transform = 'translate(-50%, -50%) scale(1)';
-                this.cursor.style.background = 'linear-gradient(135deg, #e65100, #ff9800)';
+                this.cursor.style.background = 'linear-gradient(135deg, #0d9488, #06b6d4)';
             });
         });
     }
