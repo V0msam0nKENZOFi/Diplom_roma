@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <title>ТехноСервис+ | Профессиональный ремонт оргтехники в Москве</title>
+    <meta name="description" content="Ремонт принтеров, МФУ, сканеров и копиров в Москве. Бесплатная диагностика, выезд мастера, гарантия до 1 года. Срочный ремонт за 24 часа.">
+    <meta name="keywords" content="ремонт принтеров, ремонт МФУ, ремонт оргтехники, заправка картриджей, Москва">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+</head>
+<body>
+    
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-title">ТехноСервис<span class="logo-accent">+</span></div>
+                    <p>Ремонт оргтехники с 2015 года</p>
+                </div>
+                <div class="header-aside">
+                    <div class="contact-info">
+                        <div class="phone">
+                            <span>📞</span>
+                            <a href="tel:+79261234567">+7 (926) 123-45-67</a>
+                        </div>
+                        <div class="work-time">
+                            <span>🕐</span> Пн-Сб: 10:00–20:00
+                        </div>
+                    </div>
+                    <div class="auth-panel" id="authPanel">
+                        <div class="auth-buttons" id="authGuest">
+                            <button type="button" class="auth-btn login-btn" id="loginBtn">Вход</button>
+                            <button type="button" class="auth-btn register-btn" id="registerBtn">Регистрация</button>
+                        </div>
+                        <div class="auth-user" id="authLoggedIn" hidden>
+                            <button type="button" class="auth-user-name" id="profileBtn" title="Личный кабинет"></button>
+                            <button type="button" class="auth-btn logout-btn" id="logoutBtn">Выйти</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+            </div>
+            <nav class="nav" id="mainNav">
+                <a href="#home">Главная</a>
+                <a href="#services">Услуги</a>
+                <a href="#devices">Что ремонтируем</a>
+                <a href="about.html">О компании</a>
+                <a href="#reviews">Отзывы</a>
+                <a href="#contacts">Контакты</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section id="home" class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Профессиональный ремонт<br>оргтехники в Москве</h1>
+                    <p>Принтеры, МФУ, сканеры, копировальные аппараты любой сложности</p>
+                    <div class="hero-buttons">
+                        <button class="btn btn-primary" id="openModalBtn">Заказать звонок</button>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <span class="stat-number">2500+</span>
+                            <span class="stat-label">отремонтировано устройств</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">98%</span>
+                            <span class="stat-label">положительных отзывов</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">24ч</span>
+                            <span class="stat-label">среднее время ремонта</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="services" class="services">
+            <div class="container">
+                <h2 class="section-title">Наши услуги</h2>
+                <p class="section-subtitle">Качественный ремонт любой сложности с гарантией</p>
+                <div class="services-grid">
+                    <div class="service-card">
+                        <div class="service-icon">🖨️</div>
+                        <h3>Ремонт принтеров</h3>
+                        <p>Лазерные, струйные, матричные. Замена картриджей, восстановление печатающих голов, прошивка.</p>
+                        <span class="service-price">от 800 ₽</span>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">📠</div>
+                        <h3>Ремонт МФУ</h3>
+                        <p>Многофункциональные устройства. Печать, сканирование, копирование — восстановим всё!</p>
+                        <span class="service-price">от 1200 ₽</span>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🔍</div>
+                        <h3>Ремонт сканеров</h3>
+                        <p>Диагностика оптики, замена ламп, ремонт механизма протяжки.</p>
+                        <span class="service-price">от 700 ₽</span>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">📄</div>
+                        <h3>Ремонт копиров</h3>
+                        <p>Копировальные аппараты любых брендов: Canon, HP, Xerox, Kyocera.</p>
+                        <span class="service-price">от 1000 ₽</span>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">💻</div>
+                        <h3>Профилактика и чистка</h3>
+                        <p>Плановое обслуживание, чистка узлов, смазка механизмов.</p>
+                        <span class="service-price">от 500 ₽</span>
+                    </div>
+                    <div class="service-card">
+                        <div class="service-icon">🚚</div>
+                        <h3>Выезд мастера</h3>
+                        <p>Бесплатный выезд по Москве в пределах МКАД. Ремонт на месте или забор в сервис.</p>
+                        <span class="service-price">Бесплатно</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="brands">
+            <div class="container">
+                <h2 class="section-title">Работаем с любой техникой</h2>
+                <div class="brands-grid">
+                    <div class="brand">HP</div>
+                    <div class="brand">Canon</div>
+                    <div class="brand">Xerox</div>
+                    <div class="brand">Epson</div>
+                    <div class="brand">Brother</div>
+                    <div class="brand">Kyocera</div>
+                    <div class="brand">Samsung</div>
+                    <div class="brand">Pantum</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="devices" class="devices">
+            <div class="container">
+                <h2 class="section-title">Что мы ремонтируем</h2>
+                <div class="devices-list">
+                    <div class="device-category">
+                        <h3>Неисправности, которые мы устраняем:</h3>
+                        <ul>
+                            <li>Полосы и дефекты печати</li>
+                            <li>Не включается/зависает</li>
+                            <li>Не захватывает бумагу</li>
+                            <li>Жуёт/застревает бумага</li>
+                            <li>Ошибки картриджей и тонера</li>
+                        </ul>
+                    </div>
+                    <div class="device-category">
+                        <h3>Запчасти и расходники:</h3>
+                        <ul>
+                            <li>Оригинальные и совместимые картриджи</li>
+                            <li>Фотобарабаны и ролики</li>
+                            <li>Блоки питания и платы управления</li>
+                            <li>Кабели и шлейфы</li>
+                            <li>Смазка и чистящие средства</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Секция ОТЗЫВЫ -->
+        <section id="reviews" class="reviews">
+            <div class="container">
+                <h2 class="section-title">Отзывы наших клиентов</h2>
+                <p class="section-subtitle">Что говорят о нас те, кто уже воспользовался нашими услугами</p>
+                <div class="reviews-grid" id="reviewsGrid"></div>
+                <div class="reviews-add">
+                    <h3>Оставьте свой отзыв</h3>
+                    <form id="reviewForm">
+                        <div class="review-form-row">
+                            <input type="text" placeholder="Ваше имя" required>
+                            <div class="rating-input">
+                                <span>Оценка:</span>
+                                <select>
+                                    <option value="5">★★★★★ 5</option>
+                                    <option value="4">★★★★☆ 4</option>
+                                    <option value="3">★★★☆☆ 3</option>
+                                    <option value="2">★★☆☆☆ 2</option>
+                                    <option value="1">★☆☆☆☆ 1</option>
+                                </select>
+                            </div>
+                        </div>
+                        <textarea placeholder="Ваш отзыв..." rows="3" required></textarea>
+                        <button type="submit" class="btn btn-primary">Отправить отзыв</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section id="advantages" class="advantages">
+            <div class="container">
+                <h2 class="section-title">Почему выбирают нас</h2>
+                <div class="advantages-grid">
+                    <div class="advantage">
+                        <div class="advantage-icon">🔧</div>
+                        <h3>Опытные мастера</h3>
+                        <p>Более 10 лет опыта, регулярное повышение квалификации</p>
+                    </div>
+                    <div class="advantage">
+                        <div class="advantage-icon">📋</div>
+                        <h3>Гарантия до 1 года</h3>
+                        <p>На все виды работ предоставляем гарантийный талон</p>
+                    </div>
+                    <div class="advantage">
+                        <div class="advantage-icon">💳</div>
+                        <h3>Честные цены</h3>
+                        <p>Бесплатная диагностика при ремонте, смета до начала работ</p>
+                    </div>
+                    <div class="advantage">
+                        <div class="advantage-icon">🏆</div>
+                        <h3>Срочный ремонт</h3>
+                        <p>80% заказов выполняем за 24 часа</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contacts" class="contacts">
+            <div class="container">
+                <h2 class="section-title">Контакты</h2>
+                <div class="contacts-grid">
+                    <div class="contacts-info">
+                        <div class="contact-item">
+                            <span>📍</span>
+                            <div>
+                                <strong>Адрес:</strong><br>
+                                г. Москва, ул. Техническая, д. 15, стр. 2<br>
+                                (м. Авиамоторная, 5 минут пешком)
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span>📞</span>
+                            <div>
+                                <strong>Телефоны:</strong><br>
+                                <a href="tel:+79261234567">+7 (926) 123-45-67</a><br>
+                                <a href="tel:+74951234567">+7 (495) 123-45-67</a>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span>✉️</span>
+                            <div>
+                                <strong>Email:</strong><br>
+                                <a href="mailto:info@technoservice.ru">info@technoservice.ru</a>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <span>🕐</span>
+                            <div>
+                                <strong>Режим работы:</strong><br>
+                                Понедельник-Суббота: 10:00–20:00<br>
+                                Воскресенье: выходной
+                            </div>
+                        </div>
+                    </div>
+                    <div class="contact-form">
+                        <h3>Оставьте заявку</h3>
+                        <p>Мы перезвоним в течение 15 минут</p>
+                        <form id="callbackForm">
+                            <input type="text" placeholder="Ваше имя" required>
+                            <input type="tel" placeholder="Телефон" required>
+                            <select>
+                                <option value="">Выберите устройство</option>
+                                <option>Принтер</option>
+                                <option>МФУ</option>
+                                <option>Сканер</option>
+                                <option>Копир</option>
+                                <option>Другое</option>
+                            </select>
+                            <textarea placeholder="Опишите проблему" rows="3"></textarea>
+                            <button type="submit" class="btn btn-primary">Отправить заявку</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="map-container" style="margin-top: 40px;">
+                    <div id="map" style="width: 100%; height: 400px; border-radius: 16px; overflow: hidden;"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h3>ТехноСервис+</h3>
+                    <p>Ремонт оргтехники с 2015 года</p>
+                </div>
+                <div class="footer-links">
+                    <a href="#home">Главная</a>
+                    <a href="#services">Услуги</a>
+                    <a href="about.html">О компании</a>
+                    <a href="#reviews">Отзывы</a>
+                    <a href="#contacts">Контакты</a>
+                </div>
+                <div class="footer-copy">
+                    <p>© 2025 ТехноСервис+. Все права защищены.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Модальное окно для заказа звонка -->
+    <div class="modal" id="callbackModal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>Заказать звонок</h2>
+            <p>Оставьте номер — мы перезвоним через 15 минут</p>
+            <form id="modalForm">
+                <input type="text" placeholder="Ваше имя" required>
+                <input type="tel" placeholder="Телефон" required>
+                <button type="submit" class="btn btn-primary">Перезвоните мне</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <button id="scrollToTop" class="scroll-to-top">↑</button>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

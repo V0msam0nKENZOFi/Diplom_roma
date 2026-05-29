@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <title>О компании | ТехноСервис+</title>
+    <meta name="description" content="Информация о компании ТехноСервис+ - профессиональный ремонт оргтехники с 2015 года">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+</head>
+<body>
+    
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-title">ТехноСервис<span class="logo-accent">+</span></div>
+                    <p>Ремонт оргтехники с 2015 года</p>
+                </div>
+                <div class="header-aside">
+                    <div class="contact-info">
+                        <div class="phone">
+                            <span>📞</span>
+                            <a href="tel:+79261234567">+7 (926) 123-45-67</a>
+                        </div>
+                        <div class="work-time">
+                            <span>🕐</span> Пн-Сб: 10:00–20:00
+                        </div>
+                    </div>
+                    <div class="auth-panel" id="authPanel">
+                        <div class="auth-buttons" id="authGuest">
+                            <button type="button" class="auth-btn login-btn" id="loginBtn">Вход</button>
+                            <button type="button" class="auth-btn register-btn" id="registerBtn">Регистрация</button>
+                        </div>
+                        <div class="auth-user" id="authLoggedIn" hidden>
+                            <button type="button" class="auth-user-name" id="profileBtn" title="Личный кабинет"></button>
+                            <button type="button" class="auth-btn logout-btn" id="logoutBtn">Выйти</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+            </div>
+            <nav class="nav" id="mainNav">
+                <a href="index.html#home">Главная</a>
+                <a href="index.html#services">Услуги</a>
+                <a href="index.html#devices">Что ремонтируем</a>
+                <a href="about.html">О компании</a>
+                <a href="index.html#reviews">Отзывы</a>
+                <a href="index.html#contacts">Контакты</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="about-hero">
+            <div class="container">
+                <h1>О компании <span class="logo-accent">ТехноСервис+</span></h1>
+                <p>Ваш надёжный партнёр в ремонте оргтехники с 2015 года</p>
+            </div>
+        </section>
+
+        <section class="about-story">
+            <div class="container">
+                <div class="about-grid">
+                    <div class="about-text">
+                        <h2>Наша история</h2>
+                        <p>Компания <strong>ТехноСервис+</strong> была основана в 2015 году группой энтузиастов, профессионально занимающихся ремонтом оргтехники. За 10 лет работы мы отремонтировали более 2500 устройств и помогли тысячам клиентов вернуть к жизни их принтеры, МФУ, сканеры и копировальные аппараты.</p>
+                        <p>Мы начинали с маленького сервисного центра в центре Москвы, а сегодня мы — команда из 12 высококвалифицированных мастеров, готовых выехать к вам в офис или домой в любое удобное время.</p>
+                    </div>
+                    <div class="about-stats">
+                        <div class="stat-card">
+                            <span class="stat-number">10</span>
+                            <span class="stat-label">лет на рынке</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">2500+</span>
+                            <span class="stat-label">отремонтировано устройств</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">12</span>
+                            <span class="stat-label">опытных мастеров</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number">98%</span>
+                            <span class="stat-label">довольных клиентов</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="about-mission">
+            <div class="container">
+                <h2>Наша миссия</h2>
+                <div class="mission-grid">
+                    <div class="mission-item">
+                        <div class="mission-icon">🎯</div>
+                        <h3>Качество</h3>
+                        <p>Используем только оригинальные запчасти и профессиональное оборудование</p>
+                    </div>
+                    <div class="mission-item">
+                        <div class="mission-icon">⚡</div>
+                        <h3>Скорость</h3>
+                        <p>80% ремонтов выполняем за 24 часа, срочный выезд мастера за 1 час</p>
+                    </div>
+                    <div class="mission-item">
+                        <div class="mission-icon">💎</div>
+                        <h3>Честность</h3>
+                        <p>Бесплатная диагностика и фиксированная смета до начала работ</p>
+                    </div>
+                    <div class="mission-item">
+                        <div class="mission-icon">🔧</div>
+                        <h3>Профессионализм</h3>
+                        <p>Регулярное повышение квалификации и сертификация мастеров</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="about-team">
+            <div class="container">
+                <h2>Наша команда</h2>
+                <div class="team-grid">
+                    <div class="team-card" data-member="sokolov" role="button" tabindex="0" aria-label="Подробнее об Алексее Соколове">
+                        <div class="team-avatar">👨‍🔧</div>
+                        <h3>Алексей Соколов</h3>
+                        <p>Ведущий инженер</p>
+                        <span class="team-exp">Стаж 12 лет</span>
+                        <span class="team-more">Подробнее →</span>
+                    </div>
+                    <div class="team-card" data-member="volkova" role="button" tabindex="0" aria-label="Подробнее о Марии Волковой">
+                        <div class="team-avatar">👩‍🔧</div>
+                        <h3>Мария Волкова</h3>
+                        <p>Специалист по МФУ</p>
+                        <span class="team-exp">Стаж 8 лет</span>
+                        <span class="team-more">Подробнее →</span>
+                    </div>
+                    <div class="team-card" data-member="morozov" role="button" tabindex="0" aria-label="Подробнее о Дмитрии Морозове">
+                        <div class="team-avatar">👨‍🔧</div>
+                        <h3>Дмитрий Морозов</h3>
+                        <p>Мастер по принтерам</p>
+                        <span class="team-exp">Стаж 10 лет</span>
+                        <span class="team-more">Подробнее →</span>
+                    </div>
+                    <div class="team-card" data-member="novikova" role="button" tabindex="0" aria-label="Подробнее о Елене Новиковой">
+                        <div class="team-avatar">👩‍💼</div>
+                        <h3>Елена Новикова</h3>
+                        <p>Руководитель отдела</p>
+                        <span class="team-exp">Стаж 7 лет</span>
+                        <span class="team-more">Подробнее →</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="about-certificates">
+            <div class="container">
+                <h2>Наши сертификаты и лицензии</h2>
+                <div class="certificates-grid">
+                    <div class="cert-card" data-cert="hp" role="button" tabindex="0" aria-label="Открыть сертификат HP">
+                        <span class="cert-icon">📜</span>
+                        <span class="cert-title">Сертификат HP Authorized Partner</span>
+                        <span class="cert-more">Открыть →</span>
+                    </div>
+                    <div class="cert-card" data-cert="canon" role="button" tabindex="0" aria-label="Открыть сертификат Canon">
+                        <span class="cert-icon">📜</span>
+                        <span class="cert-title">Canon Professional Service</span>
+                        <span class="cert-more">Открыть →</span>
+                    </div>
+                    <div class="cert-card" data-cert="xerox" role="button" tabindex="0" aria-label="Открыть сертификат Xerox">
+                        <span class="cert-icon">📜</span>
+                        <span class="cert-title">Xerox Certified Center</span>
+                        <span class="cert-more">Открыть →</span>
+                    </div>
+                    <div class="cert-card" data-cert="epson" role="button" tabindex="0" aria-label="Открыть сертификат Epson">
+                        <span class="cert-icon">📜</span>
+                        <span class="cert-title">Epson Authorized Service</span>
+                        <span class="cert-more">Открыть →</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h3>ТехноСервис+</h3>
+                    <p>Ремонт оргтехники с 2015 года</p>
+                </div>
+                <div class="footer-links">
+                    <a href="index.html#home">Главная</a>
+                    <a href="index.html#services">Услуги</a>
+                    <a href="about.html">О компании</a>
+                    <a href="index.html#reviews">Отзывы</a>
+                    <a href="index.html#contacts">Контакты</a>
+                </div>
+                <div class="footer-copy">
+                    <p>© 2025 ТехноСервис+. Все права защищены.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <button id="scrollToTop" class="scroll-to-top">↑</button>
+
+    <div class="modal" id="teamModal">
+        <div class="modal-content team-modal-content">
+            <span class="modal-close" id="teamModalClose">&times;</span>
+            <div id="teamModalBody"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="certModal">
+        <div class="modal-content cert-modal-content">
+            <span class="modal-close" id="certModalClose">&times;</span>
+            <div id="certModalBody"></div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
