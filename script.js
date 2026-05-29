@@ -1276,16 +1276,16 @@ function saveStoredUsers(users) {
 }
 
 function getCurrentUser() {
-    const userId = localStorage.getItem(AUTH_SESSION_KEY);
+    const userId = sessionStorage.getItem(AUTH_SESSION_KEY);
     if (!userId) return null;
     return getStoredUsers().find((u) => u.id === userId) || null;
 }
 
 function setCurrentUser(userId) {
     if (userId) {
-        localStorage.setItem(AUTH_SESSION_KEY, userId);
+        sessionStorage.setItem(AUTH_SESSION_KEY, userId);
     } else {
-        localStorage.removeItem(AUTH_SESSION_KEY);
+        sessionStorage.removeItem(AUTH_SESSION_KEY);
     }
 }
 
