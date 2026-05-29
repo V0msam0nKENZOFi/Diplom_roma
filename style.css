@@ -1359,6 +1359,17 @@ a {
     text-align: center;
 }
 
+.review-blocked-notice {
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
 .reviews-add {
     background: var(--bg-alt);
     padding: 32px;

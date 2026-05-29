@@ -257,6 +257,141 @@ handleFormSubmit('modalForm', (form) => {
     return `📞 ЗАКАЗ ЗВОНКА\n\n👤 Имя: ${name}\n📞 Телефон: ${phone}\n\n⏰ ${new Date().toLocaleString()}`;
 }, 'Спасибо! Мы перезвоним через 15 минут.');
 
+// ========== МОДЕРАЦИЯ ОТЗЫВОВ ==========
+const REVIEW_MOD_GUEST_KEY = 'technoservice_guest_moderation_id';
+const REVIEW_BLOCKED_GUESTS_KEY = 'technoservice_review_blocked_guests';
+
+const PROFANITY_ROOTS = [
+    'хуй', 'хуя', 'хуе', 'хуи', 'хую', 'пизд', 'пздц', 'бляд', 'блять', 'бля',
+    'ебан', 'ебат', 'ебал', 'ебут', 'ебаш', 'ебет', 'ебля', 'заеб', 'выеб', 'отъеб', 'проеб', 'уеб',
+    'сука', 'сучк', 'мудак', 'мудил', 'мудоз', 'пидор', 'пидар', 'педик', 'педераст',
+    'залуп', 'говно', 'говню', 'дерьм', 'шлюх', 'проститу',
+    'нахуй', 'похуй', 'охуел', 'ахуел', 'долбо', 'долбоеб', 'мраз', 'ублюд', 'гандон', 'чмошник'
+];
+
+function normalizeModerationText(text) {
+    return String(text || '')
+        .toLowerCase()
+        .replace(/ё/g, 'е')
+        .replace(/[@]/g, 'а')
+        .replace(/[0]/g, 'о')
+        .replace(/[1!|]/g, 'и')
+        .replace(/[3]/g, 'з')
+        .replace(/[4]/g, 'ч')
+        .replace(/[5\$]/g, 'с')
+        .replace(/[6]/g, 'б')
+        .replace(/[7]/g, 'т')
+        .replace(/[\s\-_*.+,/\\|]+/g, '')
+        .replace(/(.)\1{2,}/g, '$1$1');
+}
+
+function containsProfanity(text) {
+    const normalized = normalizeModerationText(text);
+    if (!normalized || normalized.length < 3) return false;
+    return PROFANITY_ROOTS.some((root) => normalized.includes(root));
+}
+
+function getGuestModerationId() {
+    let id = localStorage.getItem(REVIEW_MOD_GUEST_KEY);
+    if (!id) {
+        id = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem(REVIEW_MOD_GUEST_KEY, id);
+    }
+    return id;
+}
+
+function getBlockedGuests() {
+    try {
+        const raw = localStorage.getItem(REVIEW_BLOCKED_GUESTS_KEY);
+        return raw ? JSON.parse(raw) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveBlockedGuests(list) {
+    localStorage.setItem(REVIEW_BLOCKED_GUESTS_KEY, JSON.stringify(list));
+}
+
+function isReviewerBlocked() {
+    const user = getCurrentUser();
+    if (user) {
+        if (isAdmin(user)) return false;
+        return Boolean(user.blocked);
+    }
+    const guestId = getGuestModerationId();
+    return getBlockedGuests().some((entry) => entry.guestId === guestId);
+}
+
+function blockCurrentReviewer(displayName) {
+    const user = getCurrentUser();
+    const reason = 'Нецензурная лексика в отзыве';
+
+    if (user && !isAdmin(user)) {
+        const users = getStoredUsers();
+        const index = users.findIndex((u) => u.id === user.id);
+        if (index !== -1) {
+            users[index].blocked = true;
+            users[index].blockedAt = new Date().toISOString();
+            users[index].blockReason = reason;
+            saveStoredUsers(users);
+        }
+        setCurrentUser(null);
+        return;
+    }
+
+    const blocked = getBlockedGuests();
+    if (!blocked.some((entry) => entry.guestId === getGuestModerationId())) {
+        blocked.push({
+            guestId: getGuestModerationId(),
+            name: (displayName || 'Гость').trim(),
+            blockedAt: new Date().toISOString(),
+            reason
+        });
+        saveBlockedGuests(blocked);
+    }
+}
+
+function validateReviewContent(name, reviewText, { allowAdmin = false } = {}) {
+    if (allowAdmin) {
+        return { ok: true };
+    }
+
+    if (containsProfanity(name)) {
+        return { ok: false, field: 'name', message: 'В имени обнаружена нецензурная лексика' };
+    }
+
+    if (containsProfanity(reviewText)) {
+        return { ok: false, field: 'text', message: 'В тексте отзыва обнаружена нецензурная лексика' };
+    }
+
+    return { ok: true };
+}
+
+function applyReviewFormBlockedState() {
+    const form = document.getElementById('reviewForm');
+    const wrap = document.querySelector('.reviews-add');
+    if (!form || !wrap) return;
+
+    const blocked = isReviewerBlocked();
+    form.querySelectorAll('input, textarea, select, button').forEach((el) => {
+        el.disabled = blocked;
+    });
+
+    let notice = wrap.querySelector('.review-blocked-notice');
+    if (blocked) {
+        if (!notice) {
+            notice = document.createElement('p');
+            notice.className = 'review-blocked-notice';
+            wrap.insertBefore(notice, form);
+        }
+        notice.textContent =
+            'Вы заблокированы за нарушение правил (нецензурная лексика). Отправка отзывов недоступна.';
+    } else if (notice) {
+        notice.remove();
+    }
+}
+
 // ========== ОТЗЫВЫ (сохранение в localStorage) ==========
 const REVIEWS_STORAGE_KEY = 'technoservice_reviews';
 const REVIEWS_INITIALIZED_KEY = 'technoservice_reviews_initialized';
@@ -449,8 +584,15 @@ function initReviews() {
     const reviewForm = document.getElementById('reviewForm');
     if (!reviewForm) return;
 
+    applyReviewFormBlockedState();
+
     reviewForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        if (isReviewerBlocked()) {
+            showToast('Вы заблокированы и не можете оставлять отзывы', 'error');
+            return;
+        }
 
         const name = reviewForm.querySelector('input[type="text"]').value.trim();
         const rating = reviewForm.querySelector('select').value;
@@ -458,6 +600,19 @@ function initReviews() {
 
         if (!name || !reviewText) {
             showToast('Заполните имя и текст отзыва', 'error');
+            return;
+        }
+
+        const moderation = validateReviewContent(name, reviewText);
+        if (!moderation.ok) {
+            blockCurrentReviewer(name);
+            applyReviewFormBlockedState();
+            updateAuthUI();
+            reviewForm.reset();
+            showToast(
+                `${moderation.message}. Отзыв не опубликован. Доступ к отзывам заблокирован.`,
+                'error'
+            );
             return;
         }
 
@@ -1144,6 +1299,13 @@ function loginUser(email, password) {
         return { ok: false, error: 'Неверный email или пароль' };
     }
 
+    if (user.blocked && !isAdmin(user)) {
+        return {
+            ok: false,
+            error: 'Аккаунт заблокирован за нарушение правил (нецензурная лексика в отзыве).'
+        };
+    }
+
     setCurrentUser(user.id);
     return { ok: true, user };
 }
@@ -1176,6 +1338,8 @@ function updateAuthUI() {
         loggedInBlock.hidden = true;
         loggedInBlock.style.display = 'none';
     }
+
+    applyReviewFormBlockedState();
 }
 
 function prefillFormsForUser(user) {
@@ -1470,6 +1634,12 @@ function initAdminModals() {
             return;
         }
 
+        const moderation = validateReviewContent(name, text, { allowAdmin: true });
+        if (!moderation.ok) {
+            showToast(`${moderation.message}. Сохранение отменено.`, 'error');
+            return;
+        }
+
         const createdAt = new Date(dateValue + 'T12:00:00').toISOString();
         const updated = updateStoredReview(reviewId, { name, rating, text, createdAt });
 
@@ -1564,6 +1734,12 @@ function openAdminEditReview(reviewId) {
 
 function initAuth() {
     ensureAdminAccount();
+
+    const sessionUser = getCurrentUser();
+    if (sessionUser && sessionUser.blocked && !isAdmin(sessionUser)) {
+        setCurrentUser(null);
+    }
+
     initAuthModals();
     initAdminModals();
     updateAuthUI();
