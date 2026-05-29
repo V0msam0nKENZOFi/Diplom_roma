@@ -659,13 +659,16 @@ function initReviews() {
             return;
         }
 
+        const currentUser = getCurrentUser();
         const review = {
             id: `review_${Date.now()}`,
             name,
             rating,
             text: reviewText,
             createdAt: new Date().toISOString(),
-            isDefault: false
+            isDefault: false,
+            userId: currentUser ? currentUser.id : null,
+            userEmail: currentUser ? currentUser.email : null
         };
 
         saveStoredReview(review);
@@ -1472,6 +1475,7 @@ function initAuthModals() {
             <span class="modal-close" data-close-modal>&times;</span>
             <h2>Личный кабинет</h2>
             <div id="profileContent" class="profile-info"></div>
+            <button type="button" class="btn btn-secondary" id="logoutBtn" style="width:100%;margin-top:16px;">Выйти из аккаунта</button>
         </div>
     `;
 
@@ -1542,13 +1546,25 @@ function initAuthModals() {
             ? new Date(user.registeredAt).toLocaleString('ru-RU')
             : '—';
 
+        const blockedHtml = user.blocked
+            ? `<p style="color:#ef4444;margin-top:12px;padding:10px;background:#fef2f2;border-radius:8px;"><strong>Заблокирован</strong><br>Причина: ${escapeHtml(user.blockReason || 'Нарушение правил')}</p>`
+            : '';
+
         box.innerHTML = `
             <p><strong>Имя:</strong> ${escapeHtml(user.name)}</p>
             <p><strong>Email:</strong> ${escapeHtml(user.email)}</p>
             <p><strong>Телефон:</strong> ${escapeHtml(user.phone || 'не указан')}</p>
             <p><strong>Дата регистрации:</strong> ${registered}</p>
+            ${blockedHtml}
         `;
         openModal(profileModal);
+    });
+
+    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+        logoutUser();
+        closeModal(profileModal);
+        updateAuthUI();
+        showToast('Вы вышли из аккаунта', 'success');
     });
 
     document.getElementById('loginForm')?.addEventListener('submit', (e) => {
@@ -1756,6 +1772,9 @@ function renderAdminReviewsList() {
 
     list.innerHTML = reviews.map((review) => {
         const preview = review.text.length > 90 ? `${review.text.slice(0, 90)}…` : review.text;
+        const userInfo = review.userEmail
+            ? `<span style="font-size:12px;color:#64748b;">от ${escapeHtml(review.userEmail)}${review.userId ? ' (ID: ' + escapeHtml(review.userId) + ')' : ''}</span>`
+            : '<span style="font-size:12px;color:#94a3b8;">Гость (без аккаунта)</span>';
         return `
             <article class="admin-review-item" data-review-id="${escapeHtml(review.id)}">
                 <div class="admin-review-item-head">
@@ -1764,6 +1783,7 @@ function renderAdminReviewsList() {
                 </div>
                 <p class="admin-review-item-text">${escapeHtml(preview)}</p>
                 <span class="admin-review-item-date">${escapeHtml(formatReviewDate(review.createdAt))}</span>
+                <div style="margin-bottom:8px;">${userInfo}</div>
                 <div class="admin-review-item-actions">
                     <button type="button" class="btn btn-primary btn-sm admin-edit-review-btn" data-id="${escapeHtml(review.id)}">Редактировать</button>
                     <button type="button" class="btn btn-secondary btn-sm admin-delete-review-btn" data-id="${escapeHtml(review.id)}">Удалить</button>
