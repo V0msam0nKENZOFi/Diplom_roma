@@ -1260,7 +1260,7 @@ setupMapLazyInit();
 const AUTH_USERS_KEY = 'technoservice_users';
 const AUTH_SESSION_KEY = 'technoservice_current_user';
 const ADMIN_EMAIL = 'admin@technoservice.ru';
-const ADMIN_PASSWORD = 'admin123';
+const ADMIN_PASSWORD = 'Vlvlkoktqw@7!!';
 
 function getStoredUsers() {
     try {
