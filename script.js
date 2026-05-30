@@ -1371,9 +1371,10 @@ function loginUser(email, password) {
     }
 
     if (user.blocked && !isAdmin(user)) {
+        const reason = user.blockReason || 'Нарушение правил';
         return {
             ok: false,
-            error: 'Аккаунт заблокирован за нарушение правил (нецензурная лексика в отзыве).'
+            error: `Аккаунт заблокирован. Причина: ${reason}.`
         };
     }
 
@@ -1855,7 +1856,10 @@ function renderAdminUsersList() {
         return;
     }
 
-    html += merged.map((user) => `
+    html += merged.map((user) => {
+        const isLocal = !user._synced;
+        const banned = user.blocked;
+        return `
         <div class="admin-user-item">
             <div class="admin-user-item-head">
                 <strong>${escapeHtml(user.name || 'Без имени')}</strong>
@@ -1865,13 +1869,43 @@ function renderAdminUsersList() {
                 Email: ${escapeHtml(user.email)}<br>
                 Телефон: ${escapeHtml(user.phone || '—')}
                 ${user._synced ? '<br><span style="color:#0d9488;font-size:11px;">Из Telegram</span>' : ''}
-                ${user.blocked ? '<br><span style="color:#ef4444;">Заблокирован</span>' : ''}
+                ${banned ? '<br><span style="color:#ef4444;">Заблокирован</span>' : ''}
             </div>
-        </div>
-    `).join('');
+            ${isLocal ? `
+            <div style="margin-top:8px;">
+                <button type="button" class="btn btn-sm ${banned ? 'btn-primary' : 'btn-secondary'} admin-ban-user-btn" data-email="${escapeHtml(user.email)}" data-action="${banned ? 'unban' : 'ban'}">
+                    ${banned ? 'Разблокировать' : 'Заблокировать'}
+                </button>
+            </div>` : ''}
+        </div>`;
+    }).join('');
 
     list.innerHTML = html;
     document.getElementById('syncUsersBtn')?.addEventListener('click', syncUsersFromTelegram);
+
+    list.querySelectorAll('.admin-ban-user-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const email = btn.dataset.email;
+            const action = btn.dataset.action;
+            const users = getStoredUsers();
+            const idx = users.findIndex((u) => u.email === email);
+            if (idx === -1) { showToast('Пользователь не найден', 'error'); return; }
+
+            if (action === 'ban') {
+                users[idx].blocked = true;
+                users[idx].blockReason = 'Заблокирован администратором';
+                users[idx].blockedAt = new Date().toISOString();
+                saveStoredUsers(users);
+                showToast(`Пользователь ${users[idx].name} заблокирован`, 'success');
+            } else {
+                users[idx].blocked = false;
+                users[idx].blockReason = '';
+                saveStoredUsers(users);
+                showToast(`Пользователь ${users[idx].name} разблокирован`, 'success');
+            }
+            renderAdminUsersList();
+        });
+    });
 }
 
 async function syncUsersFromTelegram() {
