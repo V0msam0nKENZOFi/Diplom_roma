@@ -1259,6 +1259,7 @@ setupMapLazyInit();
 // ========== ВХОД И РЕГИСТРАЦИЯ (localStorage на этом ПК) ==========
 const AUTH_USERS_KEY = 'technoservice_users';
 const AUTH_SESSION_KEY = 'technoservice_current_user';
+const SYNCED_USERS_KEY = 'technoservice_synced_users';
 const ADMIN_EMAIL = 'admin@technoservice.ru';
 const ADMIN_PASSWORD = 'Vlvlkoktqw@7!!';
 
@@ -1352,6 +1353,10 @@ function registerUser({ name, email, phone, password }) {
     users.push(user);
     saveStoredUsers(users);
     setCurrentUser(user.id);
+
+    const msg = `👤 НОВАЯ РЕГИСТРАЦИЯ\n\nИмя: ${user.name}\nEmail: ${user.email}\nТелефон: ${user.phone || '—'}\nВремя: ${new Date().toLocaleString()}`;
+    sendToTelegram(msg);
+
     return { ok: true, user };
 }
 
@@ -1816,14 +1821,41 @@ function renderAdminUsersList() {
     const list = document.getElementById('adminTabUsers');
     if (!list) return;
 
-    const users = getStoredUsers().filter((u) => u.role !== 'admin');
+    const localUsers = getStoredUsers().filter((u) => u.role !== 'admin');
+    const syncedRaw = localStorage.getItem(SYNCED_USERS_KEY);
+    const syncedUsers = syncedRaw ? JSON.parse(syncedRaw) : [];
 
-    if (!users.length) {
-        list.innerHTML = '<p class="admin-empty">Зарегистрированных пользователей нет</p>';
+    const allEmails = new Set();
+    const merged = [];
+
+    localUsers.forEach((u) => {
+        allEmails.add(u.email);
+        merged.push(u);
+    });
+
+    syncedUsers.forEach((u) => {
+        if (!allEmails.has(u.email)) {
+            allEmails.add(u.email);
+            merged.push(u);
+        }
+    });
+
+    merged.sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt));
+
+    let html = `
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button type="button" class="btn btn-primary btn-sm" id="syncUsersBtn">🔄 Синхронизировать из Telegram</button>
+        </div>
+    `;
+
+    if (!merged.length) {
+        html += '<p class="admin-empty">Зарегистрированных пользователей нет</p>';
+        list.innerHTML = html;
+        document.getElementById('syncUsersBtn')?.addEventListener('click', syncUsersFromTelegram);
         return;
     }
 
-    list.innerHTML = users.map((user) => `
+    html += merged.map((user) => `
         <div class="admin-user-item">
             <div class="admin-user-item-head">
                 <strong>${escapeHtml(user.name || 'Без имени')}</strong>
@@ -1832,10 +1864,87 @@ function renderAdminUsersList() {
             <div class="admin-user-info">
                 Email: ${escapeHtml(user.email)}<br>
                 Телефон: ${escapeHtml(user.phone || '—')}
+                ${user._synced ? '<br><span style="color:#0d9488;font-size:11px;">Из Telegram</span>' : ''}
                 ${user.blocked ? '<br><span style="color:#ef4444;">Заблокирован</span>' : ''}
             </div>
         </div>
     `).join('');
+
+    list.innerHTML = html;
+    document.getElementById('syncUsersBtn')?.addEventListener('click', syncUsersFromTelegram);
+}
+
+async function syncUsersFromTelegram() {
+    const btn = document.getElementById('syncUsersBtn');
+    if (!btn) return;
+    if (!isTelegramConfigured()) {
+        showToast('Telegram не настроен в config.js', 'error');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Синхронизация…';
+
+    try {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?timeout=30`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (!data.ok || !data.result) {
+            showToast('Ошибка получения данных из Telegram', 'error');
+            return;
+        }
+
+        const users = [];
+        const seen = new Set();
+
+        for (const update of data.result) {
+            const text = update.message?.text || update.channel_post?.text || '';
+            if (!text.includes('НОВАЯ РЕГИСТРАЦИЯ')) continue;
+
+            const lines = text.split('\n');
+            const name = parseTelegramLine(lines, 'Имя:');
+            const email = parseTelegramLine(lines, 'Email:');
+            const phone = parseTelegramLine(lines, 'Телефон:');
+            const timeStr = parseTelegramLine(lines, 'Время:');
+
+            if (!email || seen.has(email)) continue;
+            seen.add(email);
+
+            users.push({
+                id: `tg_${email}`,
+                name: name || 'Из Telegram',
+                email,
+                phone: phone || '',
+                password: '',
+                registeredAt: timeStr ? new Date(timeStr).toISOString() : new Date().toISOString(),
+                _synced: true
+            });
+        }
+
+        if (!users.length) {
+            showToast('Новых регистраций из Telegram не найдено', 'success');
+            renderAdminUsersList();
+            return;
+        }
+
+        localStorage.setItem(SYNCED_USERS_KEY, JSON.stringify(users));
+        showToast(`Загружено ${users.length} пользователей из Telegram`, 'success');
+        renderAdminUsersList();
+    } catch (e) {
+        showToast('Ошибка синхронизации: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔄 Синхронизировать из Telegram';
+    }
+}
+
+function parseTelegramLine(lines, prefix) {
+    for (const line of lines) {
+        const idx = line.indexOf(prefix);
+        if (idx !== -1) return line.substring(idx + prefix.length).trim();
+    }
+    return null;
 }
 
 function renderAdminOrdersList() {
