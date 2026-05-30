@@ -1264,10 +1264,6 @@ const ADMIN_EMAIL = 'admin@technoservice.ru';
 const ADMIN_PASSWORD = 'Vlvlkoktqw@7!!';
 const API_BASE = '/api/users';
 
-function isOnVercel() {
-    return window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-}
-
 async function apiRequest(method, body) {
     try {
         const res = await fetch(API_BASE, {
@@ -1347,13 +1343,57 @@ function ensureAdminAccount() {
     }
 }
 
-function registerUser({ name, email, phone, password }) {
+async function registerUser({ name, email, phone, password }) {
     const users = getStoredUsers();
     const normalizedEmail = normalizeEmail(email);
 
     if (normalizedEmail === ADMIN_EMAIL) {
         return { ok: false, error: 'Этот email зарезервирован для администратора' };
     }
+
+    if (users.some((u) => u.email === normalizedEmail)) {
+        return { ok: false, error: 'Пользователь с таким email уже зарегистрирован' };
+    }
+
+    if (password.length < 6) {
+        return { ok: false, error: 'Пароль должен быть не короче 6 символов' };
+    }
+
+    const apiResult = await apiRequest('POST', { name, email, phone, password });
+    if (apiResult && apiResult.ok) {
+        const apiUser = apiResult.user;
+        users.push({
+            ...apiUser,
+            password,
+            registeredAt: apiUser.registeredAt || new Date().toISOString()
+        });
+        saveStoredUsers(users);
+        setCurrentUser(apiUser.id);
+
+        const msg = `👤 НОВАЯ РЕГИСТРАЦИЯ\n\nИмя: ${apiUser.name}\nEmail: ${apiUser.email}\nТелефон: ${apiUser.phone || '—'}\nВремя: ${new Date().toLocaleString()}`;
+        sendToTelegram(msg);
+
+        return { ok: true, user: apiUser };
+    }
+
+    const user = {
+        id: `user_${Date.now()}`,
+        name: name.trim(),
+        email: normalizedEmail,
+        phone: phone.trim(),
+        password,
+        registeredAt: new Date().toISOString()
+    };
+
+    users.push(user);
+    saveStoredUsers(users);
+    setCurrentUser(user.id);
+
+    const msg = `👤 НОВАЯ РЕГИСТРАЦИЯ\n\nИмя: ${user.name}\nEmail: ${user.email}\nТелефон: ${user.phone || '—'}\nВремя: ${new Date().toLocaleString()}`;
+    sendToTelegram(msg);
+
+    return { ok: true, user };
+}
 
     if (users.some((u) => u.email === normalizedEmail)) {
         return { ok: false, error: 'Пользователь с таким email уже зарегистрирован' };
@@ -1388,45 +1428,48 @@ function registerUser({ name, email, phone, password }) {
 
 async function loginUser(email, password) {
     const normalizedEmail = normalizeEmail(email);
+
+    if (normalizedEmail === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        const user = { id: 'user_admin', name: 'Администратор', email: ADMIN_EMAIL, role: 'admin' };
+        setCurrentUser(user.id);
+        return { ok: true, user };
+    }
+
     let user = getStoredUsers().find(
         (u) => u.email === normalizedEmail && u.password === password
     );
 
-    if (!user && normalizedEmail === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        user = { id: 'user_admin', name: 'Администратор', email: ADMIN_EMAIL, role: 'admin' };
+    if (user) {
+        if (user.blocked && !isAdmin(user)) {
+            return { ok: false, error: `Аккаунт заблокирован. Причина: ${user.blockReason || 'Нарушение правил'}.` };
+        }
+        setCurrentUser(user.id);
+        return { ok: true, user };
     }
 
-    if (!user && isOnVercel()) {
-        const apiResult = await apiRequest('GET');
-        if (apiResult && apiResult.ok && apiResult.users) {
-            const neonUser = apiResult.users.find((u) => u.email === normalizedEmail);
-            if (neonUser) {
-                user = {
-                    ...neonUser,
-                    role: neonUser.email === ADMIN_EMAIL ? 'admin' : undefined,
-                    password: '' // не храним пароль на клиенте
-                };
+    const apiResult = await apiRequest('GET');
+    if (apiResult && apiResult.ok && apiResult.users) {
+        const apiUser = apiResult.users.find((u) => u.email === normalizedEmail);
+        if (apiUser) {
+            const localMatch = getStoredUsers().find((u) => u.email === normalizedEmail);
+            const passwordOk = localMatch ? localMatch.password === password : false;
+            if (!passwordOk) {
+                return { ok: false, error: 'Неверный email или пароль' };
             }
+            if (apiUser.blocked) {
+                return { ok: false, error: `Аккаунт заблокирован. Причина: ${apiUser.blockReason || 'Нарушение правил'}.` };
+            }
+            user = {
+                ...apiUser,
+                role: apiUser.email === ADMIN_EMAIL ? 'admin' : undefined,
+                password: ''
+            };
+            setCurrentUser(user.id);
+            return { ok: true, user };
         }
-        if (!user) {
-            return { ok: false, error: 'Неверный email или пароль' };
-        }
     }
 
-    if (!user) {
-        return { ok: false, error: 'Неверный email или пароль' };
-    }
-
-    if (user.blocked && !isAdmin(user)) {
-        const reason = user.blockReason || 'Нарушение правил';
-        return {
-            ok: false,
-            error: `Аккаунт заблокирован. Причина: ${reason}.`
-        };
-    }
-
-    setCurrentUser(user.id);
-    return { ok: true, user };
+    return { ok: false, error: 'Неверный email или пароль' };
 }
 
 function logoutUser() {
@@ -1637,7 +1680,7 @@ function initAuthModals() {
         }
     });
 
-    document.getElementById('registerForm')?.addEventListener('submit', (e) => {
+    document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const form = e.target;
         const password = form.password.value;
@@ -1653,7 +1696,7 @@ function initAuthModals() {
             return;
         }
 
-        const result = registerUser({
+        const result = await registerUser({
             name: form.name.value,
             email: form.email.value,
             phone: form.phone.value,
