@@ -1508,7 +1508,7 @@ function initAuthModals() {
                 <button type="submit" class="btn btn-primary">Войти</button>
             </form>
             <p class="auth-switch">Нет аккаунта? <a href="#" id="switchToRegister">Зарегистрируйтесь</a></p>
-            <p class="auth-form-note">Данные хранятся только в браузере на этом компьютере (localStorage).</p>
+
         </div>
     `;
 
@@ -1528,7 +1528,7 @@ function initAuthModals() {
                 <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
             </form>
             <p class="auth-switch">Уже есть аккаунт? <a href="#" id="switchToLogin">Войдите</a></p>
-            <p class="auth-form-note">Аккаунт сохраняется локально в этом браузере. На другом ПК или в другом браузере нужна новая регистрация.</p>
+
         </div>
     `;
 
