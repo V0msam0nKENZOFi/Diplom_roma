@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Рисунок 3.3 — Модальное окно заявки</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f2744 0%, #1e3a5f 40%, #f8fafc 40%);
+      overflow: hidden;
+    }
+    .bg-site {
+      filter: blur(6px);
+      opacity: 0.55;
+      pointer-events: none;
+      padding: 24px 48px;
+      color: #fff;
+    }
+    .bg-site h1 { font-size: 42px; margin-bottom: 12px; }
+    .bg-site p { font-size: 18px; opacity: 0.9; }
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(15, 39, 68, 0.35);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px 36px 28px;
+      width: 440px;
+      max-width: 92vw;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+    }
+    .modal h2 {
+      font-size: 22px;
+      color: #0f2744;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .modal input, .modal textarea {
+      width: 100%;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #334155;
+    }
+    .modal input::placeholder, .modal textarea::placeholder { color: #94a3b8; }
+    .modal textarea { resize: vertical; min-height: 88px; }
+    .btn-send {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      background: #16a34a;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-site">
+    <h1>ТехноСервис+</h1>
+    <p>Профессиональный ремонт оргтехники в Москве</p>
+  </div>
+  <div class="overlay">
+    <div class="modal">
+      <h2>Оставить заявку</h2>
+      <input type="text" placeholder="Ваше имя" value="">
+      <input type="tel" placeholder="Номер телефона" value="">
+      <textarea placeholder="Модель устройства и описание поломки"></textarea>
+      <button type="button" class="btn-send">Отправить</button>
+    </div>
+  </div>
+</body>
+</html>
