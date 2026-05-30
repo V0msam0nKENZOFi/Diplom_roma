@@ -2042,16 +2042,20 @@ body {
     }
 
     .nav {
-        display: flex !important;
+        display: none;
         flex-wrap: wrap;
         gap: 6px 12px;
         padding: 10px 0;
         justify-content: center;
     }
 
+    .nav.active {
+        display: flex;
+    }
+
     .nav a { font-size: 13px; padding: 4px 0; }
 
-    .mobile-menu-btn { display: none; }
+    .mobile-menu-btn { display: block; }
 
     .hero {
         padding: clamp(28px, 8vw, 60px) 0 clamp(40px, 10vw, 80px);

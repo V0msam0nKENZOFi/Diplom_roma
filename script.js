@@ -257,8 +257,8 @@ handleFormSubmit('callbackForm', (form) => {
     type: 'Заявка на ремонт',
     name: form.querySelector('input[placeholder="Ваше имя"]')?.value || 'Не указан',
     phone: form.querySelector('input[type="tel"]')?.value || 'Не указан',
-    device,
-    problem,
+    device: form.querySelector('select')?.value || 'Не выбрано',
+    problem: form.querySelector('textarea')?.value || 'Не указана',
     createdAt: new Date().toISOString()
 }));
 
@@ -1395,37 +1395,6 @@ async function registerUser({ name, email, phone, password }) {
     return { ok: true, user };
 }
 
-    if (users.some((u) => u.email === normalizedEmail)) {
-        return { ok: false, error: 'Пользователь с таким email уже зарегистрирован' };
-    }
-
-    if (password.length < 6) {
-        return { ok: false, error: 'Пароль должен быть не короче 6 символов' };
-    }
-
-    const user = {
-        id: `user_${Date.now()}`,
-        name: name.trim(),
-        email: normalizedEmail,
-        phone: phone.trim(),
-        password,
-        registeredAt: new Date().toISOString()
-    };
-
-    users.push(user);
-    saveStoredUsers(users);
-    setCurrentUser(user.id);
-
-    const msg = `👤 НОВАЯ РЕГИСТРАЦИЯ\n\nИмя: ${user.name}\nEmail: ${user.email}\nТелефон: ${user.phone || '—'}\nВремя: ${new Date().toLocaleString()}`;
-    sendToTelegram(msg);
-
-    if (isOnVercel()) {
-        apiRequest('POST', { name, email, phone, password });
-    }
-
-    return { ok: true, user };
-}
-
 async function loginUser(email, password) {
     const normalizedEmail = normalizeEmail(email);
 
@@ -1571,7 +1540,7 @@ function initAuthModals() {
             <span class="modal-close" data-close-modal>&times;</span>
             <h2>Личный кабинет</h2>
             <div id="profileContent" class="profile-info"></div>
-            <button type="button" class="btn btn-secondary" id="logoutBtn" style="width:100%;margin-top:16px;">Выйти из аккаунта</button>
+            <button type="button" class="btn btn-secondary" id="profileLogoutBtn" style="width:100%;margin-top:16px;">Выйти из аккаунта</button>
         </div>
     `;
 
@@ -1656,7 +1625,7 @@ function initAuthModals() {
         openModal(profileModal);
     });
 
-    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+    document.getElementById('profileLogoutBtn')?.addEventListener('click', () => {
         logoutUser();
         closeModal(profileModal);
         updateAuthUI();
@@ -1932,17 +1901,15 @@ async function renderAdminUsersList() {
     });
 
     let neonUsers = [];
-    if (isOnVercel()) {
-        const apiResult = await apiRequest('GET');
-        if (apiResult && apiResult.ok && apiResult.users) {
-            neonUsers = apiResult.users;
-            neonUsers.forEach((u) => {
-                if (!allEmails.has(u.email)) {
-                    allEmails.add(u.email);
-                    merged.push({ ...u, _source: 'neon' });
-                }
-            });
-        }
+    const apiResult = await apiRequest('GET');
+    if (apiResult && apiResult.ok && apiResult.users) {
+        neonUsers = apiResult.users;
+        neonUsers.forEach((u) => {
+            if (!allEmails.has(u.email)) {
+                allEmails.add(u.email);
+                merged.push({ ...u, _source: 'neon' });
+            }
+        });
     }
 
     merged.sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt));
@@ -1950,13 +1917,11 @@ async function renderAdminUsersList() {
     let html = `
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
             <button type="button" class="btn btn-primary btn-sm" id="syncUsersBtn">🔄 Синхронизировать из Telegram</button>
-            ${isOnVercel() ? '<span style="font-size:12px;color:#0d9488;align-self:center;">☁ Neon DB активна</span>' : ''}
+            <span style="font-size:12px;color:#0d9488;align-self:center;">☁ Neon DB активна</span>
         </div>
     `;
 
-    if (isOnVercel()) {
-        html += '<p style="font-size:12px;color:#64748b;margin:-8px 0 12px;">Показаны пользователи со всех устройств (через Neon)</p>';
-    }
+    html += '<p style="font-size:12px;color:#64748b;margin:-8px 0 12px;">Показаны пользователи со всех устройств (через Neon)</p>';
 
     if (!merged.length) {
         html += '<p class="admin-empty">Зарегистрированных пользователей нет</p>';
@@ -2008,7 +1973,7 @@ async function renderAdminUsersList() {
                     users[idx].blockedAt = new Date().toISOString();
                     saveStoredUsers(users);
                 }
-                if (isOnVercel()) await apiRequest('PATCH', { email, action: 'ban' });
+                await apiRequest('PATCH', { email, action: 'ban' });
                 showToast(`Пользователь заблокирован`, 'success');
             } else {
                 if (idx !== -1) {
@@ -2016,7 +1981,7 @@ async function renderAdminUsersList() {
                     users[idx].blockReason = '';
                     saveStoredUsers(users);
                 }
-                if (isOnVercel()) await apiRequest('PATCH', { email, action: 'unban' });
+                await apiRequest('PATCH', { email, action: 'unban' });
                 showToast(`Пользователь разблокирован`, 'success');
             }
             renderAdminUsersList();
