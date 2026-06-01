@@ -1,30 +1,15 @@
 // ========== НАСТРОЙКИ (config.js на хостинге) ==========
 const SITE_CONFIG = window.SITE_CONFIG || {};
-const TELEGRAM_BOT_TOKEN = SITE_CONFIG.telegramBotToken || '';
-const TELEGRAM_CHAT_ID = SITE_CONFIG.telegramChatId || '';
-
-function isTelegramConfigured() {
-    return Boolean(TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID);
-}
 
 async function sendToTelegram(message) {
-    if (!isTelegramConfigured()) {
-        console.log('Telegram не настроен. Данные заявки:', message);
-        return false;
-    }
-    
     try {
-        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-        const response = await fetch(url, {
+        const response = await fetch('/api/telegram', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: TELEGRAM_CHAT_ID,
-                text: message,
-                parse_mode: 'HTML'
-            })
+            body: JSON.stringify({ text: message })
         });
-        return response.ok;
+        const data = await response.json();
+        return response.ok && data.ok;
     } catch (error) {
         console.error('Ошибка отправки в Telegram:', error);
         return false;
@@ -1992,17 +1977,16 @@ async function renderAdminUsersList() {
 async function syncUsersFromTelegram() {
     const btn = document.getElementById('syncUsersBtn');
     if (!btn) return;
-    if (!isTelegramConfigured()) {
-        showToast('Telegram не настроен в config.js', 'error');
-        return;
-    }
 
     btn.disabled = true;
     btn.textContent = '⏳ Синхронизация…';
 
     try {
-        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?timeout=30`;
-        const resp = await fetch(url);
+        const resp = await fetch('/api/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getUpdates' })
+        });
         const data = await resp.json();
 
         if (!data.ok || !data.result) {

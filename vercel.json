@@ -1,11 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "echo 'Static site + serverless API'",
   "outputDirectory": ".",
   "functions": {
-    "api/users.js": {
-      "includeFiles": "api/users.js"
-    }
+    "api/users.js": {},
+    "api/telegram.js": {}
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" }
