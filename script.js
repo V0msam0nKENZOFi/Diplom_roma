@@ -1246,7 +1246,6 @@ const AUTH_USERS_KEY = 'technoservice_users';
 const AUTH_SESSION_KEY = 'technoservice_current_user';
 const SYNCED_USERS_KEY = 'technoservice_synced_users';
 const ADMIN_EMAIL = 'admin@technoservice.ru';
-const ADMIN_PASSWORD = 'Vlvlkoktqw@7!!';
 const API_BASE = '/api/users';
 
 async function apiRequest(method, body) {
@@ -1311,7 +1310,7 @@ function ensureAdminAccount() {
             name: 'Администратор',
             email: ADMIN_EMAIL,
             phone: '',
-            password: ADMIN_PASSWORD,
+            password: '', // пароль проверяется на сервере
             role: 'admin',
             registeredAt: new Date().toISOString()
         };
@@ -1320,12 +1319,40 @@ function ensureAdminAccount() {
         return;
     }
 
-    if (admin.role !== 'admin' || admin.password !== ADMIN_PASSWORD) {
+    if (admin.role !== 'admin') {
         admin.role = 'admin';
-        admin.password = ADMIN_PASSWORD;
         admin.name = admin.name || 'Администратор';
         saveStoredUsers(users);
     }
+}
+
+async function adminLogin(password) {
+    // Пытаемся аутентифицироваться через сервер
+    try {
+        const res = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+            const user = { id: 'user_admin', name: 'Администратор', email: ADMIN_EMAIL, role: 'admin' };
+            setCurrentUser(user.id);
+            return { ok: true, user };
+        }
+    } catch {
+        // fallback
+    }
+
+    // Локальный fallback для разработки (пароль хранится в localStorage)
+    const localAdminPwd = localStorage.getItem('technoservice_admin_pwd');
+    if (localAdminPwd && password === localAdminPwd) {
+        const user = { id: 'user_admin', name: 'Администратор', email: ADMIN_EMAIL, role: 'admin' };
+        setCurrentUser(user.id);
+        return { ok: true, user };
+    }
+
+    return { ok: false, error: 'Неверный пароль администратора' };
 }
 
 async function registerUser({ name, email, phone, password }) {
@@ -1383,10 +1410,9 @@ async function registerUser({ name, email, phone, password }) {
 async function loginUser(email, password) {
     const normalizedEmail = normalizeEmail(email);
 
-    if (normalizedEmail === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        const user = { id: 'user_admin', name: 'Администратор', email: ADMIN_EMAIL, role: 'admin' };
-        setCurrentUser(user.id);
-        return { ok: true, user };
+    // Админ — аутентификация через сервер
+    if (normalizedEmail === ADMIN_EMAIL) {
+        return adminLogin(password);
     }
 
     let user = getStoredUsers().find(
@@ -1696,7 +1722,7 @@ function initAdminModals() {
             <div class="admin-tab-content active" id="adminTabReviews"></div>
             <div class="admin-tab-content" id="adminTabUsers"></div>
             <div class="admin-tab-content" id="adminTabOrders"></div>
-            <p class="auth-form-note" style="margin-top:16px;">Вход: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}</p>
+            <p class="auth-form-note" style="margin-top:16px;">Вход для администратора: ${ADMIN_EMAIL}</p>
         </div>
     `;
 
@@ -2622,6 +2648,7 @@ class CursorTrailEffect {
         this.lastTimestamp = 0;
         this.destroyed = false;
         this.animationFrameId = null;
+        this.mutationObserver = null;
         
         this.init();
     }
@@ -2811,7 +2838,7 @@ class CursorTrailEffect {
         });
         
         // Следим за новыми элементами (для динамически добавленных)
-        const observer = new MutationObserver(() => {
+        this.mutationObserver = new MutationObserver(() => {
             const newElements = document.querySelectorAll('a, button, .btn, .service-card, .brand');
             newElements.forEach(el => {
                 if (!el.hasAttribute('data-cursor-hover')) {
@@ -2828,7 +2855,7 @@ class CursorTrailEffect {
             });
         });
         
-        observer.observe(document.body, { childList: true, subtree: true });
+        this.mutationObserver.observe(document.body, { childList: true, subtree: true });
     }
     
     hideDefaultCursor() {
@@ -2852,191 +2879,14 @@ class CursorTrailEffect {
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
         }
+        // Отключаем MutationObserver для предотвращения утечки памяти
+        if (this.mutationObserver) {
+            this.mutationObserver.disconnect();
+            this.mutationObserver = null;
+        }
         if (this.customCursor?.parentNode) this.customCursor.remove();
         if (this.gradientBg?.parentNode) this.gradientBg.remove();
         document.body.classList.remove('custom-cursor-active');
-    }
-}
-
-// ========== АЛЬТЕРНАТИВНАЯ БОЛЕЕ ПРОСТАЯ ВЕРСИЯ ==========
-// Если предыдущая кажется слишком тяжёлой, используйте эту:
-
-class SimpleCursorTrail {
-    constructor() {
-        this.cursorX = 0;
-        this.cursorY = 0;
-        this.trailPositions = [];
-        this.maxTrailLength = 20;
-        
-        this.init();
-    }
-    
-    init() {
-        // Создаём кастомный курсор
-        this.cursor = document.createElement('div');
-        this.cursor.style.cssText = `
-            position: fixed;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #0d9488, #06b6d4);
-            pointer-events: none;
-            z-index: 9999;
-            transform: translate(-50%, -50%);
-            transition: transform 0.1s;
-            box-shadow: 0 0 15px rgba(230, 81, 0, 0.5);
-        `;
-        document.body.appendChild(this.cursor);
-        
-        // Создаём следы
-        for (let i = 0; i < this.maxTrailLength; i++) {
-            const trail = document.createElement('div');
-            trail.style.cssText = `
-                position: fixed;
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, #ff9800, #ffeb3b);
-                pointer-events: none;
-                z-index: 9998;
-                transform: translate(-50%, -50%);
-                opacity: ${1 - i / this.maxTrailLength};
-                transition: opacity 0.3s;
-                filter: blur(1px);
-            `;
-            document.body.appendChild(trail);
-            this.trailPositions.push({ element: trail, x: 0, y: 0 });
-        }
-        
-        document.addEventListener('mousemove', this.onMouseMove.bind(this));
-        document.addEventListener('click', this.onClick.bind(this));
-        
-        // Эффект при наведении
-        this.addHoverEffect();
-        
-        // Скрываем стандартный курсор
-        const style = document.createElement('style');
-        style.textContent = `@media (min-width: 768px) { body, a, button, .btn { cursor: none !important; } }`;
-        document.head.appendChild(style);
-        
-        this.animate();
-    }
-    
-    onMouseMove(e) {
-        this.cursorX = e.clientX;
-        this.cursorY = e.clientY;
-        
-        // Обновляем позицию курсора
-        this.cursor.style.left = this.cursorX + 'px';
-        this.cursor.style.top = this.cursorY + 'px';
-        
-        // Добавляем случайные частицы
-        if (Math.random() > 0.8) {
-            this.addParticle();
-        }
-    }
-    
-    onClick(e) {
-        this.cursor.style.transform = 'translate(-50%, -50%) scale(0.8)';
-        setTimeout(() => {
-            this.cursor.style.transform = 'translate(-50%, -50%) scale(1)';
-        }, 150);
-        
-        // Эффект клика
-        const clickEffect = document.createElement('div');
-        clickEffect.style.cssText = `
-            position: fixed;
-            left: ${e.clientX}px;
-            top: ${e.clientY}px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: radial-gradient(circle, #0d9488, transparent);
-            transform: translate(-50%, -50%) scale(0);
-            pointer-events: none;
-            z-index: 9997;
-            animation: clickRippleSimple 0.4s ease-out forwards;
-        `;
-        document.body.appendChild(clickEffect);
-        
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes clickRippleSimple {
-                0% { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
-                100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        setTimeout(() => clickEffect.remove(), 400);
-    }
-    
-    addParticle() {
-        const particle = document.createElement('div');
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 20 + Math.random() * 40;
-        const tx = Math.cos(angle) * distance;
-        const ty = Math.sin(angle) * distance;
-        
-        particle.style.cssText = `
-            position: fixed;
-            left: ${this.cursorX}px;
-            top: ${this.cursorY}px;
-            width: 4px;
-            height: 4px;
-            background: #14b8a6;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 9996;
-            animation: particleFloatSimple 0.6s ease-out forwards;
-        `;
-        particle.style.setProperty('--tx', tx + 'px');
-        particle.style.setProperty('--ty', ty + 'px');
-        document.body.appendChild(particle);
-        
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes particleFloatSimple {
-                0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
-                100% { opacity: 0; transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        setTimeout(() => particle.remove(), 600);
-    }
-    
-    addHoverEffect() {
-        const elements = document.querySelectorAll('a, button, .btn, .service-card, .brand');
-        elements.forEach(el => {
-            el.addEventListener('mouseenter', () => {
-                this.cursor.style.transform = 'translate(-50%, -50%) scale(1.5)';
-                this.cursor.style.background = 'linear-gradient(135deg, #ff6d00, #ffeb3b)';
-            });
-            el.addEventListener('mouseleave', () => {
-                this.cursor.style.transform = 'translate(-50%, -50%) scale(1)';
-                this.cursor.style.background = 'linear-gradient(135deg, #0d9488, #06b6d4)';
-            });
-        });
-    }
-    
-    animate() {
-        // Обновляем позиции следов
-        this.trailPositions.unshift({ element: this.trailPositions[0].element, x: this.cursorX, y: this.cursorY });
-        this.trailPositions.pop();
-        
-        for (let i = 0; i < this.trailPositions.length; i++) {
-            const trail = this.trailPositions[i];
-            if (trail.x && trail.y) {
-                trail.element.style.left = trail.x + 'px';
-                trail.element.style.top = trail.y + 'px';
-                trail.element.style.opacity = 1 - (i / this.maxTrailLength) * 0.8;
-                trail.element.style.width = `${12 - i * 0.5}px`;
-                trail.element.style.height = `${12 - i * 0.5}px`;
-            }
-        }
-        
-        requestAnimationFrame(this.animate.bind(this));
     }
 }
 

@@ -1,4 +1,5 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
@@ -131,11 +132,141 @@ async function handleApiUsers(request, response) {
     }
 }
 
+async function handleApiTelegram(request, response) {
+    if (request.method === 'OPTIONS') {
+        response.writeHead(204, {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        });
+        response.end();
+        return;
+    }
+
+    if (request.method !== 'POST') {
+        return jsonResponse(response, 405, { ok: false, error: 'Method not allowed' });
+    }
+
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) {
+        return jsonResponse(response, 500, { ok: false, error: 'TELEGRAM_BOT_TOKEN not set' });
+    }
+
+    const body = await readBody(request);
+    const { text, chat_id: chatId, action } = body || {};
+
+    try {
+        if (action === 'getUpdates') {
+            const apiUrl = `https://api.telegram.org/bot${token}/getUpdates?timeout=30`;
+            const data = await httpsGetJson(apiUrl);
+            return jsonResponse(response, data.ok ? 200 : 500, data);
+        }
+
+        const chat = chatId || process.env.TELEGRAM_CHAT_ID;
+        if (!text) {
+            return jsonResponse(response, 400, { ok: false, error: 'text required' });
+        }
+        if (!chat) {
+            return jsonResponse(response, 500, { ok: false, error: 'TELEGRAM_CHAT_ID not set' });
+        }
+
+        const apiUrl = `https://api.telegram.org/bot${token}/sendMessage`;
+        const data = await httpsPostJson(apiUrl, {
+            chat_id: chat,
+            text,
+            parse_mode: 'HTML'
+        });
+        return jsonResponse(response, data.ok ? 200 : 500, data);
+    } catch (err) {
+        return jsonResponse(response, 500, { ok: false, error: err.message });
+    }
+}
+
+function httpsGetJson(url) {
+    return new Promise((resolve, reject) => {
+        https.get(url, (res) => {
+            let raw = '';
+            res.on('data', (chunk) => raw += chunk);
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(raw));
+                } catch {
+                    resolve({ ok: false, error: 'Invalid JSON response' });
+                }
+            });
+        }).on('error', reject);
+    });
+}
+
+function httpsPostJson(url, data) {
+    return new Promise((resolve, reject) => {
+        const body = JSON.stringify(data);
+        const urlObj = new URL(url);
+        const options = {
+            hostname: urlObj.hostname,
+            port: 443,
+            path: urlObj.pathname + urlObj.search,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body)
+            }
+        };
+        const req = https.request(options, (res) => {
+            let raw = '';
+            res.on('data', (chunk) => raw += chunk);
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(raw));
+                } catch {
+                    resolve({ ok: false, error: 'Invalid JSON response' });
+                }
+            });
+        });
+        req.on('error', reject);
+        req.write(body);
+        req.end();
+    });
+}
+
+function handleApiAuth(request, response) {
+    if (request.method === 'OPTIONS') {
+        response.writeHead(204, {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        });
+        response.end();
+        return;
+    }
+
+    if (request.method !== 'POST') {
+        return jsonResponse(response, 405, { ok: false, error: 'Method not allowed' });
+    }
+
+    return readBody(request).then((body) => {
+        const { password } = body || {};
+        const adminPassword = process.env.ADMIN_PASSWORD || 'Vlvlkoktqw@7!!';
+        if (password === adminPassword) {
+            return jsonResponse(response, 200, { ok: true });
+        }
+        return jsonResponse(response, 401, { ok: false, error: 'Invalid admin password' });
+    });
+}
+
 const server = http.createServer(async (request, response) => {
     const urlPath = decodeURIComponent(new URL(request.url, `http://${request.headers.host}`).pathname);
 
     if (urlPath === '/api/users') {
         return handleApiUsers(request, response);
+    }
+
+    if (urlPath === '/api/auth') {
+        return handleApiAuth(request, response);
+    }
+
+    if (urlPath === '/api/telegram') {
+        return handleApiTelegram(request, response);
     }
 
     let filePath = path.join(root, urlPath);

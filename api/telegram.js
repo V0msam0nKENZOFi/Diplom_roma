@@ -1,3 +1,6 @@
+// Глобальное хранилище offset для пагинации getUpdates
+let lastUpdateOffset = 0;
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -20,8 +23,17 @@ module.exports = async function handler(req, res) {
 
   try {
     if (action === 'getUpdates') {
-      const response = await fetch(`https://api.telegram.org/bot${token}/getUpdates?timeout=30`);
+      // Используем offset для пагинации, чтобы не получать старые обновления
+      const url = `https://api.telegram.org/bot${token}/getUpdates?timeout=30&offset=${lastUpdateOffset}`;
+      const response = await fetch(url);
       const data = await response.json();
+
+      // Обновляем offset, чтобы не повторять уже полученные обновления
+      if (response.ok && data.result && data.result.length > 0) {
+        const maxId = Math.max(...data.result.map(u => u.update_id));
+        lastUpdateOffset = maxId + 1;
+      }
+
       return res.status(response.ok ? 200 : 500).json(data);
     }
 
