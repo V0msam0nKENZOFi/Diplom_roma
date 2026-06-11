@@ -4,6 +4,35 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 
+// Загрузка .env файла (без внешних зависимостей)
+(function loadEnv() {
+    const envPath = path.join(__dirname, '.env');
+    try {
+        if (fs.existsSync(envPath)) {
+            const content = fs.readFileSync(envPath, 'utf8');
+            content.split('\n').forEach((line) => {
+                line = line.trim();
+                if (!line || line.startsWith('#')) return;
+                const eqIdx = line.indexOf('=');
+                if (eqIdx === -1) return;
+                const key = line.slice(0, eqIdx).trim();
+                let value = line.slice(eqIdx + 1).trim();
+                // Убираем кавычки, если есть
+                if ((value.startsWith('"') && value.endsWith('"')) ||
+                    (value.startsWith("'") && value.endsWith("'"))) {
+                    value = value.slice(1, -1);
+                }
+                if (!process.env[key]) {
+                    process.env[key] = value;
+                }
+            });
+            console.log('.env загружен');
+        }
+    } catch (e) {
+        console.warn('Не удалось загрузить .env:', e.message);
+    }
+})();
+
 const port = Number(process.env.PORT) || 3000;
 const root = __dirname;
 
